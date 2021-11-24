@@ -1,38 +1,43 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Notes.Models;
 using Xamarin.Forms;
 
 namespace Notes.Views
 {
     public partial class NotesPage : ContentPage
     {
-        string _fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "notes.txt");
-
         public NotesPage()
         {
             InitializeComponent();
-
-            // Read the file.
-            if (File.Exists(_fileName))
-            {
-                editor.Text = File.ReadAllText(_fileName);
-            }
         }
 
-        void OnSaveButtonClicked(object sender, EventArgs e)
+
+        async void OnAddClicked(object sender, EventArgs e)
         {
-            // Save the file.
-            File.WriteAllText(_fileName, editor.Text);
+            // Navigate to the NoteEntryPage, without passing any data.
+            await Shell.Current.GoToAsync(nameof(NoteEntryPage));
         }
 
-        void OnDeleteButtonClicked(object sender, EventArgs e)
+        protected override async void OnAppearing()
         {
-            // Delete the file.
-            if (File.Exists(_fileName))
+            base.OnAppearing();
+
+            // Retrieve all the notes from the database, and set them as the
+            // data source for the CollectionView.
+            collectionView.ItemsSource = await App.Database.GetNotesAsync();
+        }
+
+        async void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.CurrentSelection != null)
             {
-                File.Delete(_fileName);
+                // Navigate to the NoteEntryPage, passing the ID as a query parameter.
+                Note note = (Note)e.CurrentSelection.FirstOrDefault();
+                await Shell.Current.GoToAsync($"{nameof(NoteEntryPage)}?{nameof(NoteEntryPage.ItemId)}={note.ID.ToString()}");
             }
-            editor.Text = string.Empty;
         }
     }
 }
